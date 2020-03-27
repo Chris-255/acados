@@ -69,17 +69,6 @@ def acados_settings(Tf, N, track_file):
 
     ocp.dims.N = N
     ns = 2
-    # ocp.dims.nx = nx
-    # ocp.dims.np = 0
-    # ocp.dims.ny = ny
-    # ocp.dims.ny_e = ny_e
-    # ocp.dims.nbx = 1
-    # ocp.dims.nsbx = 0
-    # ocp.dims.nbu = nu
-    # ocp.dims.nu = nu
-    # ocp.dims.nsh = 2
-    # ocp.dims.nh = constraint.expr.shape[0]
-    # ocp.dims.ns = 2
 
     # set cost
     Q = np.diag([ 1e-1, 1e-8, 1e-8, 1e-8, 1e-3, 5e-3 ])
@@ -112,8 +101,8 @@ def acados_settings(Tf, N, track_file):
 
     ocp.cost.zl = 100 * np.ones((ns,))
     ocp.cost.zu = 100 * np.ones((ns,))
-    ocp.cost.Zl = 0 * np.ones((ns,))
-    ocp.cost.Zu = 0 * np.ones((ns,))
+    ocp.cost.Zl = 1e-2 * np.ones((ns,))
+    ocp.cost.Zu = 1e-2 * np.ones((ns,))
 
     # set intial references
     ocp.cost.yref = np.array([1, 0, 0, 0, 0, 0, 0, 0])
@@ -123,6 +112,8 @@ def acados_settings(Tf, N, track_file):
     ocp.constraints.lbx = np.array([-12])
     ocp.constraints.ubx = np.array([12])
     ocp.constraints.idxbx = np.array([1])
+    ocp.constraints.idxsbx = np.array([0])
+
     ocp.constraints.lbu = np.array([model.dthrottle_min, model.ddelta_min])
     ocp.constraints.ubu = np.array([model.dthrottle_max, model.ddelta_max])
     ocp.constraints.idxbu = np.array([0, 1])
@@ -133,7 +124,6 @@ def acados_settings(Tf, N, track_file):
         [
             constraint.along_min,
             constraint.alat_min,
-            model.n_min,
             model.throttle_min,
             model.delta_min,
         ]
@@ -142,16 +132,13 @@ def acados_settings(Tf, N, track_file):
         [
             constraint.along_max,
             constraint.alat_max,
-            model.n_max,
             model.throttle_max,
             model.delta_max,
         ]
     )
-    ocp.constraints.idxsh = np.array([0, 2])
-    # Upper and lower bounds on slacks, are zero by default.
-    # ocp.constraints.lsh = np.zeros(ocp.dims.nsh)
-    # ocp.constraints.ush = np.zeros(ocp.dims.nsh)
+    ocp.constraints.idxsh = np.array([0])
 
+    # Upper and lower bounds on slacks, are zero by default.
     # set intial condition
     ocp.constraints.x0 = model.x0
 

@@ -142,7 +142,7 @@ def bycicle_model(track="LMS_Track.txt"):
     # define constraints struct
     constraint.alat = Function("a_lat", [x, u], [a_lat])
     constraint.pathlength = pathlength
-    constraint.expr = vertcat(a_long, a_lat, n, D, delta)
+    constraint.expr = vertcat(a_long, a_lat, D, delta)
 
     # Define model struct
     params = types.SimpleNamespace()
