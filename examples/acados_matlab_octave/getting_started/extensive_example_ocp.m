@@ -40,13 +40,13 @@ check_acados_requirements()
 
 print_level = 1;
 %% discretization
-N = 50;
+N = 100;
 h = 0.01;
 T = N*h; % time horizon length
 
 nlp_solver = 'sqp'; % sqp, sqp_rti
 nlp_solver_exact_hessian = 'true';
-regularize_method = 'convexify';
+regularize_method = 'project_reduc_hess';
      % no_regularize, project, project_reduc_hess, mirror, convexify
 nlp_solver_max_iter = 30;
 tol = 1e-8;
