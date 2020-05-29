@@ -150,7 +150,7 @@ static void mdlInitializeSizes (SimStruct *S)
     ssSetOutputPortVectorDimension(S, 0, {{ dims.nu }} ); // optimal input
     ssSetOutputPortVectorDimension(S, 1, 1 ); // solver status
     ssSetOutputPortVectorDimension(S, 2, 1 ); // KKT residuals
-    ssSetOutputPortVectorDimension(S, 3, {{ dims.nx }} ); // first state
+    ssSetOutputPortVectorDimension(S, 3, {{ dims.N }} ); // get first state prediction over horizon
     ssSetOutputPortVectorDimension(S, 4, 1); // computation times
     ssSetOutputPortVectorDimension(S, 5, 1 ); // sqp iter
 
@@ -378,8 +378,13 @@ static void mdlOutputs(SimStruct *S, int_T tid)
     // get solution
     ocp_nlp_out_get(nlp_config, nlp_dims, nlp_out, 0, "u", (void *) out_u0);
 
-    // get next state
-    ocp_nlp_out_get(nlp_config, nlp_dims, nlp_out, 1, "x", (void *) out_x1);
+    // get first state prediction over horizon
+    real_t tempx[4];
+    for(int kk = 1; kk < 51; kk++ ){
+        ocp_nlp_out_get(nlp_config, nlp_dims, nlp_out, kk, "x", (void *) tempx);
+        out_x1[kk-1]=(double)tempx[0];
+        //ssPrintf("next s %.0f = %.5g \n", (double)kk, (double)out_x1[kk-1]);
+    }
 
 }
 
