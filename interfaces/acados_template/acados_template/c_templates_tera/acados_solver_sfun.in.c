@@ -379,8 +379,8 @@ static void mdlOutputs(SimStruct *S, int_T tid)
     ocp_nlp_out_get(nlp_config, nlp_dims, nlp_out, 0, "u", (void *) out_u0);
 
     // get first state prediction over horizon
-    real_t tempx[4];
-    for(int kk = 1; kk < 51; kk++ ){
+    real_t tempx[{{ dims.nx }}];
+    for(int kk = 1; kk < {{ dims.N }} + 1; kk++ ){
         ocp_nlp_out_get(nlp_config, nlp_dims, nlp_out, kk, "x", (void *) tempx);
         out_x1[kk-1]=(double)tempx[0];
         //ssPrintf("next s %.0f = %.5g \n", (double)kk, (double)out_x1[kk-1]);
