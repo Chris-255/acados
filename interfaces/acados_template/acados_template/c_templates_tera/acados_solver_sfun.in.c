@@ -85,7 +85,7 @@ static void mdlInitializeSizes (SimStruct *S)
         return;
     {% set numStatesSFuncOut = 4 %}
     // specify the number of output ports
-    if ( !ssSetNumOutputPorts(S, {{5 + numStatesSFuncOut}}) )
+    if ( !ssSetNumOutputPorts(S, {{4 + dims.nu + numStatesSFuncOut}}) )
         return;
 
     // specify dimension information for the input ports
@@ -147,13 +147,13 @@ static void mdlInitializeSizes (SimStruct *S)
     {%- endif %}
 
     // specify dimension information for the output ports
-    ssSetOutputPortVectorDimension(S, 0, {{ dims.nu }} ); // optimal input
-    ssSetOutputPortVectorDimension(S, 1, 1 ); // solver status
-    ssSetOutputPortVectorDimension(S, 2, 1 ); // KKT residuals
-    ssSetOutputPortVectorDimension(S, 3, 1 ); // computation times
-    ssSetOutputPortVectorDimension(S, 4, 1 ); // sqp iter
-    {% for a in range(end=numStatesSFuncOut) %}
-    ssSetOutputPortVectorDimension(S, {{a + 5}}, {{ dims.N }} ); // get {{a + 1}} state prediction over horizon
+    ssSetOutputPortVectorDimension(S, 0, 1 ); // solver status
+    ssSetOutputPortVectorDimension(S, 1, 1 ); // KKT residuals
+    ssSetOutputPortVectorDimension(S, 2, 1 ); // computation times
+    ssSetOutputPortVectorDimension(S, 3, 1 ); // sqp iter
+    {% for a in range(end=dims.nu) %}ssSetOutputPortVectorDimension(S, {{a + 4}}, {{ dims.N - 1 }} ); // optimal input {{a+1}}
+    {% endfor %}
+    {% for a in range(end=numStatesSFuncOut) %}ssSetOutputPortVectorDimension(S, {{a + 4 + dims.nu }}, {{ dims.N }} ); // get {{a + 1}} state prediction over horizon
     {% endfor %}
 
     // specify the direct feedthrough status
@@ -365,19 +365,20 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 
     /* set outputs */
     // assign pointers to output signals
-    real_t *out_u0, *out_status, *out_sqp_iter, *out_KKT_res, *out_cpu_time;
+    real_t *out_status, *out_sqp_iter, *out_KKT_res, *out_cpu_time;
     int tmp_int;
-    {% for a in range(end=numStatesSFuncOut) %}
-    real_t *out_x{{a + 1}};
+    {% for a in range(end=dims.nu) %}real_t *out_u{{a + 1}};
+    {% endfor %}
+    {% for a in range(end=numStatesSFuncOut) %}real_t *out_x{{a + 1}};
     {% endfor %}
 
-    out_u0          = ssGetOutputPortRealSignal(S, 0);
-    out_status      = ssGetOutputPortRealSignal(S, 1);
-    out_KKT_res     = ssGetOutputPortRealSignal(S, 2);
-    out_cpu_time    = ssGetOutputPortRealSignal(S, 3);
-    out_sqp_iter    = ssGetOutputPortRealSignal(S, 4);
-    {% for a in range(end=numStatesSFuncOut) %}
-    out_x{{a + 1}}=ssGetOutputPortRealSignal(S, {{a + 5}}); // define {{loop.index}} state prediction over horizon
+    out_status      = ssGetOutputPortRealSignal(S, 0);
+    out_KKT_res     = ssGetOutputPortRealSignal(S, 1);
+    out_cpu_time    = ssGetOutputPortRealSignal(S, 2);
+    out_sqp_iter    = ssGetOutputPortRealSignal(S, 3);
+    {% for a in range(end=dims.nu) %}out_u{{a + 1}}= ssGetOutputPortRealSignal(S, {{a + 4}}); // define optimal input {{loop.index}}
+    {% endfor %}
+    {% for a in range(end=numStatesSFuncOut) %}out_x{{a + 1}}=ssGetOutputPortRealSignal(S, {{a + dims.nu + 4}}); // define {{loop.index}} state prediction over horizon
     {% endfor %}
 
     // extract solver info
@@ -394,7 +395,18 @@ static void mdlOutputs(SimStruct *S, int_T tid)
 //    *out_sqp_iter = (real_t) nlp_out->sqp_iter;
 
     // get solution
-    ocp_nlp_out_get(nlp_config, nlp_dims, nlp_out, 0, "u", (void *) out_u0);
+
+
+    real_t tempu[{{ dims.nu }}];
+    for(int kk = 1; kk < {{ dims.N }}; kk++ ){
+        ocp_nlp_out_get(nlp_config, nlp_dims, nlp_out, kk, "u", (void *) tempu);
+        {% for a in range(end=dims.nu) %}
+        out_u{{a + 1}}[kk-1]=(double)tempu[{{a}}]; // get {{loop.index}} state prediction over horizon
+        {% endfor %}
+    //     ssPrintf("next u1 %.0f = %.5g \n", (double)kk, (double)out_u1[kk-1]);
+    }
+
+
 
     real_t tempx[{{ dims.nx }}];
     for(int kk = 1; kk < {{ dims.N + 1 }}; kk++ ){
