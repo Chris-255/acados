@@ -39,6 +39,8 @@
 
 {%- if solver_options.hessian_approx %}
 	{%- set hessian_approx = solver_options.hessian_approx %}
+{%- elif solver_options.sens_hess %}
+	{%- set hessian_approx = "EXACT" %}
 {%- else %}
 	{%- set hessian_approx = "GAUSS_NEWTON" %}
 {%- endif %}
@@ -156,6 +158,7 @@ OCP_OBJ+= {{ model.name }}_cost/{{ model.name }}_cost_y_fun_jac_ut_xt.c
 OCP_OBJ+= {{ model.name }}_cost/{{ model.name }}_cost_y_hess.c
 {%- elif cost_type == "EXTERNAL" %}
 OCP_OBJ+= {{ model.name }}_cost/{{ model.name }}_ext_cost_fun.c
+OCP_OBJ+= {{ model.name }}_cost/{{ model.name }}_ext_cost_fun_jac.c
 OCP_OBJ+= {{ model.name }}_cost/{{ model.name }}_ext_cost_fun_jac_hess.c
 {%- endif %}
 {%- if cost_type_e == "NONLINEAR_LS" %}
@@ -164,6 +167,7 @@ OCP_OBJ+= {{ model.name }}_cost/{{ model.name }}_cost_y_e_fun_jac_ut_xt.c
 OCP_OBJ+= {{ model.name }}_cost/{{ model.name }}_cost_y_e_hess.c
 {%- elif cost_type_e == "EXTERNAL" %}
 OCP_OBJ+= {{ model.name }}_cost/{{ model.name }}_ext_cost_e_fun.c
+OCP_OBJ+= {{ model.name }}_cost/{{ model.name }}_ext_cost_e_fun_jac.c
 OCP_OBJ+= {{ model.name }}_cost/{{ model.name }}_ext_cost_e_fun_jac_hess.c
 {%- endif %}
 OCP_OBJ+= acados_solver_{{ model.name }}.o
@@ -328,13 +332,11 @@ example:
 
 
 example_sim: sim_solver main_sim
-	gcc $(ACADOS_FLAGS) -o main_sim_{{ model.name}} $(EX_SIM_OBJ) $(OBJ) -L $(LIB_PATH) \
+	gcc $(ACADOS_FLAGS) -o main_sim_{{ model.name}} $(EX_SIM_OBJ) $(MODEL_OBJ) $(SIM_OBJ) -L $(LIB_PATH) \
 	-L $(LIB_PATH) \
 	-lacados -lhpipm -lblasfeo \
 	-lm \
 	-I $(INCLUDE_PATH)/blasfeo/include/ \
-	-I $(INCLUDE_PATH)/hpipm/include/ \
-	-I $(INCLUDE_PATH) \
 	-I $(INCLUDE_PATH)/acados/ \
 
 

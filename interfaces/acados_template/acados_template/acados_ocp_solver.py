@@ -631,6 +631,7 @@ class AcadosOcpSolver:
     def __init__(self, acados_ocp, json_file='acados_ocp_nlp.json'):
 
         self.solver_created = False
+        self.N = acados_ocp.dims.N
         model = acados_ocp.model
 
         # make dims consistent
@@ -719,6 +720,16 @@ class AcadosOcpSolver:
         if (field_ not in out_fields + mem_fields):
             raise Exception('AcadosOcpSolver.get(): {} is an invalid argument.\
                     \n Possible values are {}. Exiting.'.format(field_, out_fields + mem_fields))
+
+        if not isinstance(stage_, int):
+            raise Exception('AcadosOcpSolver.get(): stage index must be Integer.')
+
+        if stage_ < 0 or stage_ > self.N:
+            raise Exception('AcadosOcpSolver.get(): stage index must be in [0, N], got: {}.'.format(self.N))
+
+        if stage_ == self.N and field_ == 'pi':
+            raise Exception('AcadosOcpSolver.get(): field {} does not exist at final stage {}.'\
+                .format(field_, stage_))
 
         self.shared_lib.ocp_nlp_dims_get_from_attr.argtypes = \
             [c_void_p, c_void_p, c_void_p, c_int, c_char_p]
@@ -826,7 +837,22 @@ class AcadosOcpSolver:
 
     # Note: this function should not be used anymore, better use cost_set, constraints_set
     def set(self, stage_, field_, value_):
+        """
+        set numerical data inside the solver:
+            :param stage_: integer corresponding to shooting node
+            :param field_: string in ['x', 'u', 'pi', 'lam', 't']
 
+            .. note:: regarding lam, t: \n
+                    the inequalities are internally organized in the following order: \n
+                    [ lbu lbx lg lh lphi ubu ubx ug uh uphi; \n
+                      lsbu lsbx lsg lsh lsphi usbu usbx usg ush usphi]
+
+            .. note:: pi: multipliers for dynamics equality constraints \n
+                      lam: multipliers for inequalities \n
+                      t: slack variables corresponding to evaluation of all inequalities (at the solution) \n
+                      sl: slack variables of soft lower inequality constraints \n
+                      su: slack variables of soft upper inequality constraints \n
+        """
         cost_fields = ['y_ref', 'yref']
         constraints_fields = ['lbx', 'ubx', 'lbu', 'ubu']
         out_fields = ['x', 'u', 'pi', 'lam', 't']
@@ -849,7 +875,7 @@ class AcadosOcpSolver:
             if field_ not in constraints_fields + cost_fields + out_fields:
                 raise Exception("AcadosOcpSolver.set(): {} is not a valid argument.\
                     \nPossible values are {}. Exiting.".format(field, \
-                    constraints_fields + cost_fields + out_fields + 'p'))
+                    constraints_fields + cost_fields + out_fields + ['p']))
 
             self.shared_lib.ocp_nlp_dims_get_from_attr.argtypes = \
                 [c_void_p, c_void_p, c_void_p, c_int, c_char_p]
@@ -889,7 +915,7 @@ class AcadosOcpSolver:
         """
         set numerical data in the cost module of the solver:
             :param stage_: integer corresponding to shooting node
-            :param field_: string, e.g. 'yref', 'W'
+            :param field_: string, e.g. 'yref', 'W', 'ext_cost_num_hess'
             :param value_: of appropriate size
         """
         # cast value_ to avoid conversion issues
